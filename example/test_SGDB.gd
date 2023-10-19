@@ -1,18 +1,26 @@
 extends Node
 
 func _ready():
+	var db_path = "res://example/db/"
+	var table   = "test"
+	var id      = "TESTID1001"
+	
 	#初始化数据库并设置数据库位置
-	var db = SGDB.new("res://example/db/")
+	var db = SGDB.new(db_path)
 	#也可以先new在设置数据库位置
 	#var db = SGDB.new()
 	#db.set_path("res://example/db/")
 	
 	#创建一个表
-	db.create_table_use("test")
+	if !db.table_exist(table):
+		db.create_table_use(table)
+	else :
+		db.use(table)
 	
 	#插入数据
-	db.insert("TESTID1001",{"name":"Song","Age":"19"})
+	if !db.id_exist(id):
+		db.insert(id,{"name":"Song","Age":"19"})
 	
 	#查询数据
-	var result = db.select_row("TESTID1001")
+	var result = db.select_row(id)
 	print(result)

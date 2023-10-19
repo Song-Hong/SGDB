@@ -89,6 +89,15 @@ func select_row(id):
 	var path = row_path(id)
 	return manager.read(path)
 
+#查询表是否存在
+func table_exist(table):
+	return manager.exist_dir(db_path+table)
+	
+#查询id是否存在
+func id_exist(id):
+	var path = row_path(id)
+	return manager.exist_file(path)
+
 #显示现在全部的表格
 #show now exsit tables
 func show_table():
@@ -130,7 +139,25 @@ class SGDB_Manager:
 		var io_call = Callable(io,"mkdir")
 		io_call.call(path)
 		threads.save(io_call)
+
+############################
+#	查询操作
+#
+###########################
+	#文件夹是否存在
+	func exist_dir(path):
+		var io_call = Callable(io,"exist_dir")
+		var value = io_call.call(path)
+		threads.read(io_call)
+		return value
 	
+	#文件是否存在
+	func exist_file(path):
+		var io_call = Callable(io,"exist_file")
+		var value = io_call.call(path)
+		threads.read(io_call)
+		return value
+
 ###########################
 # 文件流
 ###########################
@@ -154,7 +181,19 @@ class SGDB_IO:
 	#创建文件夹
 	func mkdir(path):
 		DirAccess.make_dir_absolute(path)
-
+	
+############################
+#	查询操作
+#
+###########################
+	#文件夹是否存在
+	func exist_dir(path):
+		return DirAccess.dir_exists_absolute(path)
+	
+	#文件是否存在
+	func exist_file(path):
+		return FileAccess.file_exists(path)
+	
 #多线程管理
 #Multithread management
 class SGDB_Thread:
