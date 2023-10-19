@@ -4,3 +4,4 @@ res://example/test.tscn
 res://example/test_SGDB.gd
 res://scripts/SGDB_Threads.gd
 res://example/aaa.json
+res://example/db/test/TESTID1001.json

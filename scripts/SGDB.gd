@@ -6,41 +6,59 @@ extends Node
 class_name SGDB
 
 ###########################
-# 数据库路径
-# database path
-###########################
-var db_path = ""
-
-###########################
-# 数据库当前使用的表格
+# 变量
 # 
 ###########################
-var db_table_use = ""
-
-###########################
-#数据库线程
-#database thread
-###########################
-var manager:SGDB_Manager
+var db_path = ""            #数据库路径 database path
+var db_table_use = ""       #数据库当前使用的表格
+var manager:SGDB_Manager    #数据库线程 database thread
 
 ###########################
 # 初始化数据
 # initialize database
 ###########################
+#初始化
 func _init(path=""):
 	manager = SGDB_Manager.new()
+	set_path(path)
+	
+#设置路径
+func set_path(path):
 	db_path = path
+	if !db_path.ends_with("/"):
+		db_path+="/"
+
+###########################
+# 工具方法
+# Tools func
+###########################
+#使用表格
+func use(table):
+	db_table_use = table
+	if !db_table_use.ends_with("/"):
+		db_table_use += "/"
+
+#获取一列的数据
+func row_path(id):
+	return db_path+db_table_use+id+".json"
 
 ###########################
 # 插入数据
 # insert data
 ###########################
-func insert():
-	pass
+#创建一个表
+func create_table(table:String):
+	manager.mkdir(db_path+table)
 
-#插入数据_多线程
-func insert_thread():
-	pass
+#创建一个表并使用
+func create_table_use(table):
+	create_table(table)
+	use(table)
+
+#插入数据
+func insert(id,data):
+	var path = row_path(id)
+	manager.save(path,data)
 
 #插入一行数据
 func insert_row():
@@ -63,8 +81,13 @@ func update_row():
 	pass
 
 #查
-func select():
+func select(id):
 	pass
+
+#查询一行数据
+func select_row(id):
+	var path = row_path(id)
+	return manager.read(path)
 
 #显示现在全部的表格
 #show now exsit tables
@@ -101,7 +124,13 @@ class SGDB_Manager:
 		var io_call = Callable(io,"save")
 		io_call.call(path,content)
 		threads.save(io_call)
-
+	
+	#创建文件夹
+	func mkdir(path):
+		var io_call = Callable(io,"mkdir")
+		io_call.call(path)
+		threads.save(io_call)
+	
 ###########################
 # 文件流
 ###########################
@@ -119,8 +148,12 @@ class SGDB_IO:
 	#向文件写入文件流
 	func save(path,content):
 		var _save = FileAccess.open(path,FileAccess.WRITE)
-		_save.store_string(content)
+		_save.store_string(JSON.stringify(content))
 		_save.close()
+	
+	#创建文件夹
+	func mkdir(path):
+		DirAccess.make_dir_absolute(path)
 
 #多线程管理
 #Multithread management
