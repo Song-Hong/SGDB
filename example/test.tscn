@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://qbd8b4lb65sa"]
+
+[ext_resource type="Script" path="res://example/test_SGDB.gd" id="1_g3vrv"]
+
+[node name="Node" type="Node"]
+script = ExtResource("1_g3vrv")

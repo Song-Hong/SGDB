@@ -1,0 +1,6 @@
+res://scenes/test.tscn
+res://scripts/SGDB.gd
+res://example/test.tscn
+res://example/test_SGDB.gd
+res://scripts/SGDB_Threads.gd
+res://example/aaa.json
