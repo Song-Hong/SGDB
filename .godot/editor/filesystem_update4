@@ -1,9 +1,3 @@
 res://example/test.tscn
 res://scripts/SGDB.gd
 res://example/test_SGDB.gd
-res://example/db/test/TESTID1001.sgdb.json
-res://example/db/test/TESTID1002.sgdb.json
-res://example/db/test/TESTID1003.sgdb.json
-res://example/db/aaa.json
-res://example/db/test/TESTID1004.sgdb.json
-res://example/db/aaa.txt

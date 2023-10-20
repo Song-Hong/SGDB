@@ -76,6 +76,7 @@ func insert(data:Dictionary):
 func insert_row(id,data:Dictionary):
 	var path = row_path(id)
 	if path == null: return
+	if id_exist(id) : return
 	manager.save(path,data)
 	manager.replace_index(table_path(db_table_use),id,data)
 
@@ -116,6 +117,10 @@ func update():
 #改一行数据
 func update_row():
 	pass
+
+#更新一行数据
+func update_row_set(id,column,value):
+	manager.update_row_set(table_path(db_table_use),id,column,value)
 
 ###########################
 # 查询操作
@@ -203,6 +208,11 @@ class SGDB_Manager:
 		io_call = io_call.bind(path,id,data)
 		threads.save(io_call)
 	
+	func update_row_set(path,id,column,value):
+		var io_call = Callable(io,"update_row_set")
+		io_call = io_call.bind(path,id,column,value)
+		threads.save(io_call)
+	
 	#文件夹是否存在
 	func exist_dir(path):
 		var io_call = Callable(io,"exist_dir")
@@ -228,13 +238,6 @@ class SGDB_Manager:
 # 文件流
 ###########################
 class SGDB_IO:
-
-	#读取文件的内容
-	func read(path):
-		var _read = FileAccess.open(path,FileAccess.READ)
-		var value = _read.get_as_text()
-		_read.close()
-		return value
 	
 	#带条件的查询
 	func select_where(path,column,where):
@@ -251,6 +254,31 @@ class SGDB_IO:
 			var f = FileAccess.open(r_path,FileAccess.READ)
 			result.append(f.get_as_text())
 		return result
+	
+	#更新一行数据
+	func update_row_set(path,id,column,value):
+		#更新一行数据
+		var i_path   = path+column+".sgdb.index"
+		var file     = FileAccess.open(i_path,FileAccess.READ)
+		var json     = JSON.parse_string(file.get_as_text())
+		json[id]     = value
+		file         = FileAccess.open(i_path,FileAccess.WRITE)
+		file.store_string(JSON.stringify(json))
+		
+		#更新一行数据
+		var r_path   = path+id+".sgdb.json"
+		file         = FileAccess.open(r_path,FileAccess.READ)
+		json         = JSON.parse_string(file.get_as_text())
+		json[column] = value
+		file         = FileAccess.open(r_path,FileAccess.WRITE)
+		file.store_string(JSON.stringify(json))
+		
+	#读取文件的内容
+	func read(path):
+		var _read = FileAccess.open(path,FileAccess.READ)
+		var value = _read.get_as_text()
+		_read.close()
+		return value
 	
 	#向文件写入文件流
 	func save(path,content):
