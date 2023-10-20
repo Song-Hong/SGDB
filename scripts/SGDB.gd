@@ -288,7 +288,7 @@ class SGDB_IO:
 	
 	#创建文件夹
 	func mkdir(path):
-		DirAccess.make_dir_absolute(path)
+		DirAccess.make_dir_absolute(ProjectSettings.globalize_path(path))
 	
 	#删除文件或文件夹
 	func remove(path):
