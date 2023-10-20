@@ -1,2 +1,3 @@
 res://example/test.tscn
-res://scripts/SGDB.gd
+res://README.md
+res://example/test_SGDB.gd

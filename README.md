@@ -29,10 +29,10 @@ db.create_table_use(table)
 插入一行数据
 
 ```
-	db.insert_row("TESTID1001",{"name":"ZS","Age":"22"})
-	db.insert_row("TESTID1002",{"name":"LS","Age":"22"})
-	db.insert_row("TESTID1003",{"name":"WW","Age":"22"})
-	db.insert_row("TESTID1004",{"name":"ZS","Age":"24"})
+db.insert_row("TESTID1001",{"name":"ZS","Age":"22"})
+db.insert_row("TESTID1002",{"name":"LS","Age":"22"})
+db.insert_row("TESTID1003",{"name":"WW","Age":"22"})
+db.insert_row("TESTID1004",{"name":"ZS","Age":"24"})
 ```
 
 
@@ -68,16 +68,16 @@ db.update_row_set("TESTID1004","name","HS")
 按条件查询
 
 ```
-	var result = db.select_where("Age","22")
-	for res in result:
-		var json = JSON.parse_string(res)
-		print(json["name"])
+var result = db.select_where("Age","22")
+for res in result:
+var json = JSON.parse_string(res)
+print(json["name"])
 ```
 
 按id查询
 
 ```
-	var result   = db.select_row("TESTID1004")
-	print(JSON.parse_string(result))
+var result   = db.select_row("TESTID1004")
+print(JSON.parse_string(result))
 ```
 

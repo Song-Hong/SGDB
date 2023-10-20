@@ -39,3 +39,4 @@ func _ready():
 	
 	#删除一行
 	#db.delete_row("TESTID1004")
+	db.delete_table("table")
