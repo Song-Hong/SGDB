@@ -41,12 +41,11 @@ func use(table):
 #获取表格路径
 func table_path(table):
 	return db_path+table
-	
 
 #获取一列的数据
 func row_path(id):
 	if check_table(): return null
-	return db_path+db_table_use+id+".json"
+	return db_path+db_table_use+id+".sgdb.json"
 
 #检查表格是否正确
 func check_table():
@@ -54,7 +53,7 @@ func check_table():
 	if state:
 		printerr("Tables that are not currently in use")
 	return state
-
+	
 ###########################
 # 插入数据
 # insert data
@@ -73,10 +72,16 @@ func insert():
 	pass
 
 #插入一行数据
-func insert_row(id,data):
+func insert_row(id,data:Dictionary):
 	var path = row_path(id)
 	if path == null: return
 	manager.save(path,data)
+	manager.replace_index(table_path(db_table_use),id,data)
+
+###########################
+# 删除操作
+#
+###########################
 
 #删除一个表
 func delete_table(table):
@@ -92,6 +97,10 @@ func delete():
 func delete_row():
 	pass
 
+###########################
+# 修改操作
+#
+###########################
 #改
 func update():
 	pass
@@ -100,7 +109,10 @@ func update():
 func update_row():
 	pass
 
-#查
+###########################
+# 查询操作
+#
+###########################
 func select():
 	pass
 
@@ -125,7 +137,10 @@ func id_exist(id):
 func show_table():
 	pass
 
-#管理类
+###########################
+# 管理类
+# 
+###########################
 class SGDB_Manager:
 	
 	#多线程
@@ -164,10 +179,12 @@ class SGDB_Manager:
 		io_call = io_call.bind(path)
 		threads.save(io_call)
 	
-############################
-#	查询操作
-#
-###########################
+	#存储和更新索引
+	func replace_index(path,id,data):
+		var io_call = Callable(io,"replace_index")
+		io_call = io_call.bind(path,id,data)
+		threads.save(io_call)
+	
 	#文件夹是否存在
 	func exist_dir(path):
 		var io_call = Callable(io,"exist_dir")
@@ -182,16 +199,11 @@ class SGDB_Manager:
 		var thread = threads.read(io_call)
 		return thread.wait_to_finish()
 
-
-
 ###########################
 # 文件流
 ###########################
 class SGDB_IO:
-	
-	func _init():
-		pass
-	
+
 	#读取文件的内容
 	func read(path):
 		var _read = FileAccess.open(path,FileAccess.READ)
@@ -217,7 +229,20 @@ class SGDB_IO:
 		for dir in get_all_dirs(path):
 			DirAccess.remove_absolute(dir)
 		DirAccess.remove_absolute(path)
-		
+	
+	#创建和更新索引
+	func replace_index(path,id,data):
+		for key in data.keys():
+			var i_path = path+key+".sgdb.index"
+			print(i_path)
+			if !FileAccess.file_exists(i_path):
+				var f = FileAccess.open(i_path,FileAccess.WRITE)
+				f.store_string("{}")
+			var file = FileAccess.open(i_path,FileAccess.READ_WRITE)
+			var json = JSON.parse_string(file.get_as_text())
+			json[id] = data[key]
+			file.store_string(JSON.stringify(json))
+	
 	#获取当前目录下的全部文件,包含子文件
 	func get_all_files(dir_path):
 		var dirs  = DirAccess.open(dir_path)
@@ -252,10 +277,6 @@ class SGDB_IO:
 	func get_dirs(path):
 		return DirAccess.get_directories_at(path)
 	
-############################
-#	查询操作
-#
-###########################
 	#文件夹是否存在
 	func exist_dir(path):
 		return DirAccess.dir_exists_absolute(path)
@@ -263,15 +284,13 @@ class SGDB_IO:
 	#文件是否存在
 	func exist_file(path):
 		return FileAccess.file_exists(path)
-	
-#多线程管理
-#Multithread management
+
+###########################
+# 多线程管理
+# Multithread management
+###########################
 class SGDB_Thread:
 
-	#初始化
-	func _init():
-		pass
-	
 	#读线程
 	func read(_call:Callable):
 		var thread = Thread.new()

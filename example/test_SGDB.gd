@@ -22,7 +22,7 @@ func _ready():
 		db.insert_row(id,{"name":"Song","Age":"19"})
 	
 	#查询数据
-	await  get_tree().create_timer(0.0001).timeout
+	await get_tree().create_timer(0.0001).timeout
 	var result = db.select_row(id)
 	print(result)
 	
