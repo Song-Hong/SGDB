@@ -19,8 +19,12 @@ func _ready():
 	
 	#插入数据
 	if !db.id_exist(id):
-		db.insert(id,{"name":"Song","Age":"19"})
+		db.insert_row(id,{"name":"Song","Age":"19"})
 	
 	#查询数据
+	await  get_tree().create_timer(0.0001).timeout
 	var result = db.select_row(id)
 	print(result)
+	
+	#删除表格
+	db.delete_table(table)

@@ -38,9 +38,22 @@ func use(table):
 	if !db_table_use.ends_with("/"):
 		db_table_use += "/"
 
+#获取表格路径
+func table_path(table):
+	return db_path+table
+	
+
 #获取一列的数据
 func row_path(id):
+	if check_table(): return null
 	return db_path+db_table_use+id+".json"
+
+#检查表格是否正确
+func check_table():
+	var state = db_table_use == ""
+	if state:
+		printerr("Tables that are not currently in use")
+	return state
 
 ###########################
 # 插入数据
@@ -56,13 +69,20 @@ func create_table_use(table):
 	use(table)
 
 #插入数据
-func insert(id,data):
-	var path = row_path(id)
-	manager.save(path,data)
+func insert():
+	pass
 
 #插入一行数据
-func insert_row():
-	pass
+func insert_row(id,data):
+	var path = row_path(id)
+	if path == null: return
+	manager.save(path,data)
+
+#删除一个表
+func delete_table(table):
+	manager.remove(table_path(table))
+	if table == db_table_use:
+		db_table_use = ""
 
 #删
 func delete():
@@ -81,31 +101,29 @@ func update_row():
 	pass
 
 #查
-func select(id):
+func select():
 	pass
 
 #查询一行数据
 func select_row(id):
 	var path = row_path(id)
+	if path == null: return
 	return manager.read(path)
 
 #查询表是否存在
 func table_exist(table):
-	return manager.exist_dir(db_path+table)
+	return manager.exist_dir(table_path(table))
 	
 #查询id是否存在
 func id_exist(id):
 	var path = row_path(id)
+	if path == null: return
 	return manager.exist_file(path)
 
 #显示现在全部的表格
 #show now exsit tables
 func show_table():
 	pass
-
-#关闭数据库
-func close():
-	manager.close()
 
 #管理类
 class SGDB_Manager:
@@ -124,22 +142,28 @@ class SGDB_Manager:
 	#读操作
 	func read(path):
 		var io_call = Callable(io,"read")
-		var value = io_call.call(path)
-		threads.read(io_call)
-		return value
+		io_call = io_call.bind(path)
+		var thread = threads.read(io_call)
+		return thread.wait_to_finish()
 	
 	#写操作
 	func save(path,content):
 		var io_call = Callable(io,"save")
-		io_call.call(path,content)
+		io_call = io_call.bind(path,content)
 		threads.save(io_call)
 	
 	#创建文件夹
 	func mkdir(path):
 		var io_call = Callable(io,"mkdir")
-		io_call.call(path)
+		io_call = io_call.bind(path)
 		threads.save(io_call)
-
+	
+	#删除文件或文件夹
+	func remove(path):
+		var io_call = Callable(io,"remove")
+		io_call = io_call.bind(path)
+		threads.save(io_call)
+	
 ############################
 #	查询操作
 #
@@ -147,16 +171,18 @@ class SGDB_Manager:
 	#文件夹是否存在
 	func exist_dir(path):
 		var io_call = Callable(io,"exist_dir")
-		var value = io_call.call(path)
-		threads.read(io_call)
-		return value
+		io_call = io_call.bind(path)
+		var thread = threads.read(io_call)
+		return thread.wait_to_finish()
 	
 	#文件是否存在
 	func exist_file(path):
 		var io_call = Callable(io,"exist_file")
-		var value = io_call.call(path)
-		threads.read(io_call)
-		return value
+		io_call = io_call.bind(path)
+		var thread = threads.read(io_call)
+		return thread.wait_to_finish()
+
+
 
 ###########################
 # 文件流
@@ -169,8 +195,9 @@ class SGDB_IO:
 	#读取文件的内容
 	func read(path):
 		var _read = FileAccess.open(path,FileAccess.READ)
-		return _read.get_as_text()
+		var value = _read.get_as_text()
 		_read.close()
+		return value
 	
 	#向文件写入文件流
 	func save(path,content):
@@ -181,6 +208,49 @@ class SGDB_IO:
 	#创建文件夹
 	func mkdir(path):
 		DirAccess.make_dir_absolute(path)
+	
+	#删除文件或文件夹
+	func remove(path):
+		path = ProjectSettings.globalize_path(path)
+		for file in get_all_files(path):
+			DirAccess.remove_absolute(file)
+		for dir in get_all_dirs(path):
+			DirAccess.remove_absolute(dir)
+		DirAccess.remove_absolute(path)
+		
+	#获取当前目录下的全部文件,包含子文件
+	func get_all_files(dir_path):
+		var dirs  = DirAccess.open(dir_path)
+		var files = []
+		if !dir_path.ends_with("/"):
+			dir_path+="/"
+		for dir in dirs.get_directories():
+			for file in get_all_files(dir_path+dir):
+				files.append(file)
+		for file in dirs.get_files():
+			files.append(dir_path+file)
+		return files
+	
+	#获取全部文件夹,包含子目录文件夹
+	func get_all_dirs(dir_path):
+		var directory = []
+		var dirs  = DirAccess.open(dir_path)
+		if !dir_path.ends_with("/"):
+			dir_path+="/"
+		for dir in dirs.get_directories():
+			var path = dir_path+dir
+			for d in get_all_dirs(path):
+				directory.append(d)
+			directory.append(path)
+		return directory
+			
+	#获取当前目录下的全部文件
+	func get_files(path):
+		return DirAccess.get_files_at(path)
+	
+	#获取当前目录下的全部文件夹
+	func get_dirs(path):
+		return DirAccess.get_directories_at(path)
 	
 ############################
 #	查询操作
@@ -198,20 +268,6 @@ class SGDB_IO:
 #Multithread management
 class SGDB_Thread:
 
-############################
-#	读线程运行状态
-#	写线程运行状态
-###########################
-	var read_state = false
-	var save_state = false
-	
-############################
-#	读线程队列
-#	写线程队列
-###########################
-	var read_list = []
-	var save_list = []
-	
 	#初始化
 	func _init():
 		pass
@@ -219,40 +275,11 @@ class SGDB_Thread:
 	#读线程
 	func read(_call:Callable):
 		var thread = Thread.new()
-		read_list.append({_call:thread})
+		thread.start(_call)
+		return thread
 	
 	#写线程
 	func save(_call:Callable):
 		var thread = Thread.new()
-		read_list.append({_call:thread})
-	
-	#读线程
-	func start_read():
-		if read_state : return
-		read_state = true
-		while len(read_list) > 0:
-			for key in read_list[0].keys():
-				var thread = read_list[0][key]
-				thread.start(key)
-				await thread.wait_to_finish()
-				read_list.remove_at(0)
-		read_state = false
-	
-	#存储线程
-	func start_save():
-		if save_state : return
-		save_state = true
-		while len(save_list) > 0:
-			for key in save_list[0].keys():
-				var thread = save_list[0][key]
-				thread.start(key)
-				await thread.wait_to_finish()
-				save_list.remove_at(0)
-		save_state = false
-	
-	#关闭全部线程
-	func close():
-		read_state = true
-		save_state = true
-		read_list.clear()
-		save_list.clear()
+		thread.start(_call,Thread.PRIORITY_HIGH)
+		thread.wait_to_finish()
