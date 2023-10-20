@@ -68,11 +68,19 @@ func create_table_use(table):
 	use(table)
 
 #插入数据
-func insert():
-	pass
+func insert(data:Dictionary):
+	for key in data.keys():
+		pass
 
 #插入一行数据
 func insert_row(id,data:Dictionary):
+	var path = row_path(id)
+	if path == null: return
+	manager.save(path,data)
+	manager.replace_index(table_path(db_table_use),id,data)
+
+#
+func replace_row(id,data:Dictionary):
 	var path = row_path(id)
 	if path == null: return
 	manager.save(path,data)
@@ -82,7 +90,6 @@ func insert_row(id,data:Dictionary):
 # 删除操作
 #
 ###########################
-
 #删除一个表
 func delete_table(table):
 	manager.remove(table_path(table))
@@ -94,8 +101,9 @@ func delete():
 	pass
 
 #删除一行数据
-func delete_row():
-	pass
+func delete_row(id):
+	manager.delete_index_row(table_path(db_table_use),id)
+	manager.remove(row_path(id))
 
 ###########################
 # 修改操作
@@ -115,6 +123,10 @@ func update_row():
 ###########################
 func select():
 	pass
+
+#查询附带条件
+func select_where(column,where):
+	return manager.select_where(table_path(db_table_use),column,where)
 
 #查询一行数据
 func select_row(id):
@@ -173,10 +185,16 @@ class SGDB_Manager:
 		io_call = io_call.bind(path)
 		threads.save(io_call)
 	
-	#删除文件或文件夹
+	#删除文件夹
 	func remove(path):
 		var io_call = Callable(io,"remove")
 		io_call = io_call.bind(path)
+		threads.save(io_call)
+	
+	#删除一行索引
+	func delete_index_row(path,id):
+		var io_call = Callable(io,"delete_index_row")
+		io_call = io_call.bind(path,id)
 		threads.save(io_call)
 	
 	#存储和更新索引
@@ -198,7 +216,14 @@ class SGDB_Manager:
 		io_call = io_call.bind(path)
 		var thread = threads.read(io_call)
 		return thread.wait_to_finish()
-
+	
+	#带条件查询
+	func select_where(path,column,where):
+		var io_call = Callable(io,"select_where")
+		io_call = io_call.bind(path,column,where)
+		var thread = threads.read(io_call)
+		return thread.wait_to_finish()
+	
 ###########################
 # 文件流
 ###########################
@@ -210,6 +235,22 @@ class SGDB_IO:
 		var value = _read.get_as_text()
 		_read.close()
 		return value
+	
+	#带条件的查询
+	func select_where(path,column,where):
+		var i_path  = path+column+".sgdb.index"
+		var file = FileAccess.open(i_path,FileAccess.READ)
+		var json    = JSON.parse_string(file.get_as_text())
+		var ids     = []
+		var result  = []
+		for key in json.keys():
+			if json[key] == where:
+				ids.append(key)
+		for id in ids:
+			var r_path  = path+id+".sgdb.json"
+			var f = FileAccess.open(r_path,FileAccess.READ)
+			result.append(f.get_as_text())
+		return result
 	
 	#向文件写入文件流
 	func save(path,content):
@@ -223,6 +264,9 @@ class SGDB_IO:
 	
 	#删除文件或文件夹
 	func remove(path):
+		if FileAccess.file_exists(path) : 
+			DirAccess.remove_absolute(path)
+			return
 		path = ProjectSettings.globalize_path(path)
 		for file in get_all_files(path):
 			DirAccess.remove_absolute(file)
@@ -234,7 +278,6 @@ class SGDB_IO:
 	func replace_index(path,id,data):
 		for key in data.keys():
 			var i_path = path+key+".sgdb.index"
-			print(i_path)
 			if !FileAccess.file_exists(i_path):
 				var f = FileAccess.open(i_path,FileAccess.WRITE)
 				f.store_string("{}")
@@ -242,6 +285,21 @@ class SGDB_IO:
 			var json = JSON.parse_string(file.get_as_text())
 			json[id] = data[key]
 			file.store_string(JSON.stringify(json))
+	
+	#删除表一行的索引
+	func delete_index_row(path,id):
+		var f = FileAccess.open(path+id+".sgdb.json",FileAccess.READ)
+		var data = JSON.parse_string(f.get_as_text())
+		for key in data.keys():
+			var i_path = path+key+".sgdb.index"
+			if !FileAccess.file_exists(i_path):
+				return
+			var file = FileAccess.open(i_path,FileAccess.READ)
+			var json = JSON.parse_string(file.get_as_text())
+			json.erase(id)
+			var content = JSON.stringify(json)
+			file =  FileAccess.open(i_path,FileAccess.WRITE)
+			file.store_string(content)
 	
 	#获取当前目录下的全部文件,包含子文件
 	func get_all_files(dir_path):
@@ -267,8 +325,8 @@ class SGDB_IO:
 			for d in get_all_dirs(path):
 				directory.append(d)
 			directory.append(path)
-		return directory
-			
+		return directory	
+	
 	#获取当前目录下的全部文件
 	func get_files(path):
 		return DirAccess.get_files_at(path)

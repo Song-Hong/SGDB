@@ -17,14 +17,26 @@ func _ready():
 	else :
 		db.use(table)
 	
+	#var file = FileAccess.open("res://example/db/test/Age.sgdb.index",FileAccess.READ)
+	#print(file.get_as_text())
+	
 	#插入数据
-	if !db.id_exist(id):
-		db.insert_row(id,{"name":"Song","Age":"19"})
+	db.insert_row("TESTID1001",{"name":"HS","Age":"22"})
+	db.insert_row("TESTID1002",{"name":"YK","Age":"22"})
+	db.insert_row("TESTID1003",{"name":"XJ","Age":"22"})
+	db.insert_row("TESTID1004",{"name":"HM","Age":"3"})
 	
-	#查询数据
+	#按条件查询
 	await get_tree().create_timer(0.0001).timeout
-	var result = db.select_row(id)
-	print(result)
+	var result = db.select_where("Age","22")
+	for res in result:
+		var json = JSON.parse_string(res)
+		print(json["name"])
 	
-	#删除表格
-	db.delete_table(table)
+	#通过id进行数据的查询
+	#await get_tree().create_timer(0.0001).timeout
+	#result = db.select_row(id)
+	#print(result) 
+	
+	#删除一行
+	#db.delete_row("TESTID1004")
