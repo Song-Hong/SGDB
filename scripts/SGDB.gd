@@ -132,6 +132,16 @@ func select_where(column,where):
 	if check_table(): return
 	return manager.select_where(table_path(db_table_use),column,where)
 
+#查询高于一个数值
+func select_where_high(column,where):
+	if check_table(): return
+	return manager.select_where_high(table_path(db_table_use),column,where)
+
+#查询低于一个数值
+func select_where_low(column,where):
+	if check_table(): return
+	return manager.select_where_low(table_path(db_table_use),column,where)
+
 #查询一行数据
 func select_row(id):
 	var path = row_path(id)
@@ -227,9 +237,23 @@ class SGDB_Manager:
 		var thread = threads.read(io_call)
 		return thread.wait_to_finish()
 	
-	#带条件查询
+	#查询高于
 	func select_where(path,column,where):
 		var io_call = Callable(io,"select_where")
+		io_call = io_call.bind(path,column,where)
+		var thread = threads.read(io_call)
+		return thread.wait_to_finish()
+		
+	#查询低于
+	func select_where_high(path,column,where):
+		var io_call = Callable(io,"select_where_high")
+		io_call = io_call.bind(path,column,where)
+		var thread = threads.read(io_call)
+		return thread.wait_to_finish()
+	
+	#带条件查询
+	func select_where_low(path,column,where):
+		var io_call = Callable(io,"select_where_low")
 		io_call = io_call.bind(path,column,where)
 		var thread = threads.read(io_call)
 		return thread.wait_to_finish()
@@ -245,6 +269,37 @@ class SGDB_Manager:
 # 文件流
 ###########################
 class SGDB_IO:
+	#查询高于
+	func select_where_high(path,column,where):
+		var i_path  = path+column+".sgdb.index"
+		var file = FileAccess.open(i_path,FileAccess.READ)
+		var json    = JSON.parse_string(file.get_as_text())
+		var ids     = []
+		var result  = []
+		for key in json.keys():
+			if int(json[key]) > int(where):
+				ids.append(key)
+		for id in ids:
+			var r_path  = path+id+".sgdb.json"
+			var f = FileAccess.open(r_path,FileAccess.READ)
+			result.append(f.get_as_text())
+		return result
+	
+	#查询低于
+	func select_where_low(path,column,where):
+		var i_path  = path+column+".sgdb.index"
+		var file = FileAccess.open(i_path,FileAccess.READ)
+		var json    = JSON.parse_string(file.get_as_text())
+		var ids     = []
+		var result  = []
+		for key in json.keys():
+			if int(json[key]) < int(where):
+				ids.append(key)
+		for id in ids:
+			var r_path  = path+id+".sgdb.json"
+			var f = FileAccess.open(r_path,FileAccess.READ)
+			result.append(f.get_as_text())
+		return result
 	
 	#带条件的查询
 	func select_where(path,column,where):

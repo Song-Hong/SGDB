@@ -17,9 +17,7 @@ func _ready():
 		db.use(table)
 	
 	#显示全部表格
-	print(db.show_tables())
-	
-	return
+	#print(db.show_tables())
 	
 	#插入数据
 	db.insert_row("TESTID1001",{"name":"HS","Age":"22"})
@@ -29,20 +27,20 @@ func _ready():
 	
 	#按条件查询
 	await get_tree().create_timer(0.0001).timeout
-	var result = db.select_where("Age","3")
+	var result = db.select_where_low("Age","23")
 	for res in result:
 		var json = JSON.parse_string(res)
 		print(json["name"])
 	
 	#更新数据
-	db.update_row_set("TESTID1004","name","HG")
+	#db.update_row_set("TESTID1004","name","HG")
 	
 	#通过id进行数据的查询
-	await get_tree().create_timer(0.0001).timeout
-	result   = db.select_row("TESTID1004")
-	print(JSON.parse_string(result))
+	#await get_tree().create_timer(0.0001).timeout
+	#result   = db.select_row("TESTID1004")
+	#print(JSON.parse_string(result))
 	
 	#删除一行
 	#db.delete_row("TESTID1004")
-	db.delete_table("table")
+	#db.delete_table("table")
 	
