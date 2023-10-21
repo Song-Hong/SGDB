@@ -103,6 +103,7 @@ func delete():
 
 #删除一行数据
 func delete_row(id):
+	if check_table(): return
 	manager.delete_index_row(table_path(db_table_use),id)
 	manager.remove(row_path(id))
 
@@ -114,12 +115,9 @@ func delete_row(id):
 func update():
 	pass
 
-#改一行数据
-func update_row():
-	pass
-
 #更新一行数据
 func update_row_set(id,column,value):
+	if check_table(): return
 	manager.update_row_set(table_path(db_table_use),id,column,value)
 
 ###########################
@@ -131,6 +129,7 @@ func select():
 
 #查询附带条件
 func select_where(column,where):
+	if check_table(): return
 	return manager.select_where(table_path(db_table_use),column,where)
 
 #查询一行数据
@@ -151,8 +150,9 @@ func id_exist(id):
 
 #显示现在全部的表格
 #show now exsit tables
-func show_table():
-	pass
+func show_tables():
+	if db_path == "":return
+	return manager.get_dirs(db_path)
 
 ###########################
 # 管理类
@@ -234,6 +234,13 @@ class SGDB_Manager:
 		var thread = threads.read(io_call)
 		return thread.wait_to_finish()
 	
+	#获取全部文件夹
+	func get_dirs(path):
+		var io_call = Callable(io,"get_dirs")
+		io_call = io_call.bind(path)
+		var thread = threads.read(io_call)
+		return thread.wait_to_finish()
+	
 ###########################
 # 文件流
 ###########################
@@ -287,7 +294,7 @@ class SGDB_IO:
 		_save.close()
 	
 	#创建文件夹
-	func mkdir(path):
+	func mkdir(path): 
 		DirAccess.make_dir_absolute(ProjectSettings.globalize_path(path))
 	
 	#删除文件或文件夹

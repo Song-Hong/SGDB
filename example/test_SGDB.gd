@@ -16,6 +16,11 @@ func _ready():
 	else :
 		db.use(table)
 	
+	#显示全部表格
+	print(db.show_tables())
+	
+	return
+	
 	#插入数据
 	db.insert_row("TESTID1001",{"name":"HS","Age":"22"})
 	db.insert_row("TESTID1002",{"name":"YK","Age":"22"})
@@ -40,3 +45,4 @@ func _ready():
 	#删除一行
 	#db.delete_row("TESTID1004")
 	db.delete_table("table")
+	
