@@ -6,19 +6,19 @@
 
 创建一个表
 
-```gdscript
+```
 db.create_table("table")
 ```
 
 在使用表格时需要使用
 
-```gdscript
+```
 db.use("table")
 ```
 
 或者直接使用,该方法会在创建表后,直接使用当前创建的表
 
-```gdscript
+```
 db.create_table_use(table)
 ```
 
