@@ -19,28 +19,39 @@ func _ready():
 	#显示全部表格
 	#print(db.show_tables())
 	
-	#插入数据
 	db.insert_row("TESTID1001",{"name":"HS","Age":"22"})
 	db.insert_row("TESTID1002",{"name":"YK","Age":"22"})
 	db.insert_row("TESTID1003",{"name":"XJ","Age":"22"})
-	db.insert_row("TESTID1004",{"name":"HM","Age":"3"})
+	db.insert_row("TESTID1004",{"name":"WHM","Age":"3"})
+	db.insert_row("TESTID1005",{"name":"HSH","Age":"4"})
+	db.insert_row("TESTID1006",{"name":"HHT","Age":"5"})
+	db.insert_row("TESTID1007",{"name":"PWH","Age":"6"})
 	
 	#按条件查询
-	await get_tree().create_timer(0.0001).timeout
-	var result = db.select_where_low("Age","23")
+	#await get_tree().create_timer(0.0001).timeout
+	#var result = db.select_where_high("Age","21")
+	#for res in result:
+	#	var json = JSON.parse_string(res)
+	#	print(json["name"])        
+	
+	await get_tree().create_timer(0.001).timeout
+	var result = db.select_blur("name","%H")
 	for res in result:
 		var json = JSON.parse_string(res)
 		print(json["name"])
 	
-	#更新数据
-	#db.update_row_set("TESTID1004","name","HG")
-	
 	#通过id进行数据的查询
+	#result   = db.select_row("TESTID1005")
+	#print(JSON.parse_string(result))
+	
+	#更新数据
+	#db.update_row_set("TESTID1005","Age","5")
+	
 	#await get_tree().create_timer(0.0001).timeout
-	#result   = db.select_row("TESTID1004")
+	#result   = db.select_row("TESTID1005")
 	#print(JSON.parse_string(result))
 	
 	#删除一行
 	#db.delete_row("TESTID1004")
-	#db.delete_table("table")
+	#db.delete_table(table)
 	

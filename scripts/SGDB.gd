@@ -142,6 +142,10 @@ func select_where_low(column,where):
 	if check_table(): return
 	return manager.select_where_low(table_path(db_table_use),column,where)
 
+func select_blur(column,blur):
+	if check_table(): return
+	return manager.select_blur(table_path(db_table_use),column,blur)
+
 #查询一行数据
 func select_row(id):
 	var path = row_path(id)
@@ -258,6 +262,13 @@ class SGDB_Manager:
 		var thread = threads.read(io_call)
 		return thread.wait_to_finish()
 	
+	#模糊查询
+	func select_blur(path,column,blur):
+		var io_call = Callable(io,"select_blur")
+		io_call = io_call.bind(path,column,blur)
+		var thread = threads.read(io_call)
+		return thread.wait_to_finish()
+	
 	#获取全部文件夹
 	func get_dirs(path):
 		var io_call = Callable(io,"get_dirs")
@@ -269,6 +280,202 @@ class SGDB_Manager:
 # 文件流
 ###########################
 class SGDB_IO:
+	###########################
+	# 索引操作
+	###########################
+	func create_index():
+		pass
+	
+	func delete_index():
+		pass
+	
+	func update_index():
+		pass
+	
+	func select_index():
+		pass
+	
+	#获取整个索引,如果存在的话
+	func get_index(path,i_name):
+		var i_path = index_path(path,i_name)
+		if FileAccess.file_exists(i_path):
+			var file = FileAccess.open(i_path,FileAccess.READ)
+			return JSON.parse_string(file.get_as_text())
+		else:
+			return null
+	
+	###########################
+	# 数据操作
+	###########################
+	func create_data(path,id):
+		pass
+	
+	func delete_data(path,id):
+		pass
+	
+	func update_data(path,id):
+		pass
+	
+	func get_data(path,id):
+		var r_path  = path+id+".sgdb.json"
+		var f = FileAccess.open(r_path,FileAccess.READ)
+		return f.get_as_text()
+	
+	func get_data_json(path,id):
+		return JSON.parse_string(get_data(path,id))
+	
+	############################################
+	# 文件/文件夹操作
+	############################################
+		#创建文件夹
+	func mkdir(path): 
+		DirAccess.make_dir_absolute(ProjectSettings.globalize_path(path))
+	
+	#删除文件或文件夹
+	func remove(path):
+		if FileAccess.file_exists(path) : 
+			DirAccess.remove_absolute(path)
+			return
+		path = ProjectSettings.globalize_path(path)
+		for file in get_all_files(path):
+			DirAccess.remove_absolute(file)
+		for dir in get_all_dirs(path):
+			DirAccess.remove_absolute(dir)
+		DirAccess.remove_absolute(path)
+	
+		#获取当前目录下的全部文件,包含子文件
+	func get_all_files(dir_path):
+		var dirs  = DirAccess.open(dir_path)
+		var files = []
+		if !dir_path.ends_with("/"):
+			dir_path+="/"
+		for dir in dirs.get_directories():
+			for file in get_all_files(dir_path+dir):
+				files.append(file)
+		for file in dirs.get_files():
+			files.append(dir_path+file)
+		return files
+	
+	#获取全部文件夹,包含子目录文件夹
+	func get_all_dirs(dir_path):
+		var directory = []
+		var dirs  = DirAccess.open(dir_path)
+		if !dir_path.ends_with("/"):
+			dir_path+="/"
+		for dir in dirs.get_directories():
+			var path = dir_path+dir
+			for d in get_all_dirs(path):
+				directory.append(d)
+			directory.append(path)
+		return directory	
+	
+	#获取当前目录下的全部文件
+	func get_files(path):
+		return DirAccess.get_files_at(path)
+	
+	#获取当前目录下的全部文件夹
+	func get_dirs(path):
+		return DirAccess.get_directories_at(path)
+	
+	#文件夹是否存在
+	func exist_dir(path):
+		return DirAccess.dir_exists_absolute(path)
+	
+	#文件是否存在
+	func exist_file(path):
+		return FileAccess.file_exists(path)
+	
+	############################################
+	# 工具方法
+	############################################
+	func index_path(path,column):
+		return path+column+".sgdb.index"
+	
+	func ids_to_result(path,ids):
+		var result = []
+		for id in ids:
+			result.append(get_data(path,id))
+		return result
+	
+	############################################
+	# 模糊查询操作
+	############################################
+	func _select_blur_po(blur:String)->int:
+		if !blur.contains("%"):
+			return -1
+		
+		#获取长度及通配符位置
+		var index     = blur.find("%")
+		var blur_len  = len(blur)-1
+		
+		#获取通配符的位置
+		if  index == 0:         #通配符在行尾
+			return 2
+		elif index == blur_len: #通配符在行首
+			return 0
+		else:                   #通配符在行中
+			return 1
+	
+	#查询从行首的位置
+	func _select_blur_with_begin(path,blur,keys,value):
+		if len(keys) != len(value): return null
+		var ids = []
+		for i in range(len(value)):
+			var val = value[i]
+			if val.begins_with(blur):
+				ids.append(keys[i])
+		return ids_to_result(path,ids)
+	
+	#
+	func _select_blur_with_end(path,blur,keys,value):
+		if len(keys) != len(value): return null
+		var ids = []
+		for i in range(len(value)):
+			var val = str(value[i])
+			var key = keys[i]
+			
+			if end_with(val,blur):
+				ids.append(key)
+				
+			#if val.end_with(blur):
+			#	ids.append(key)
+		return ids_to_result(path,ids)
+	
+	func end_with(text:String,value:String)->bool:
+		return text.substr(len(text)-len(value)) == value
+	
+	#查询
+	func _select_blur_with_center(path,blurs,keys,value):
+		if len(keys) != len(value): return null
+		var ids = []
+		for i in range(len(value)):
+			var val = value[i]
+			if val.start_with(blurs[0]) && val.end_with(blurs[1]):
+				ids.append(keys[i])
+		return ids_to_result(path,ids)
+		
+	#模糊查询id
+	func select_blur_id(path,blur:String):
+		pass
+	
+	#模糊查询列
+	func select_blur(path,column,blur:String):
+		var index = get_index(path,column)
+		var ind_k = index.keys()
+		var ind_v = index.values()
+		match  _select_blur_po(blur):
+			-1: return ""
+			0 : return _select_blur_with_begin(path,blur.trim_suffix("%"),ind_k,ind_v)
+			1 : return _select_blur_with_center(path,blur.split("%"),ind_k,ind_v)
+			2 : return _select_blur_with_end(path,blur.trim_prefix("%"),ind_k,ind_v)
+	
+	#综合性搜索
+	func select(id): 
+		id = str(id)
+		if id.contains("%"):
+			pass
+		pass
+	
 	#查询高于
 	func select_where_high(path,column,where):
 		var i_path  = path+column+".sgdb.index"
@@ -317,6 +524,8 @@ class SGDB_IO:
 			result.append(f.get_as_text())
 		return result
 	
+	
+	
 	#更新一行数据
 	func update_row_set(path,id,column,value):
 		#更新一行数据
@@ -348,22 +557,6 @@ class SGDB_IO:
 		_save.store_string(JSON.stringify(content))
 		_save.close()
 	
-	#创建文件夹
-	func mkdir(path): 
-		DirAccess.make_dir_absolute(ProjectSettings.globalize_path(path))
-	
-	#删除文件或文件夹
-	func remove(path):
-		if FileAccess.file_exists(path) : 
-			DirAccess.remove_absolute(path)
-			return
-		path = ProjectSettings.globalize_path(path)
-		for file in get_all_files(path):
-			DirAccess.remove_absolute(file)
-		for dir in get_all_dirs(path):
-			DirAccess.remove_absolute(dir)
-		DirAccess.remove_absolute(path)
-	
 	#创建和更新索引
 	func replace_index(path,id,data):
 		for key in data.keys():
@@ -390,48 +583,6 @@ class SGDB_IO:
 			var content = JSON.stringify(json)
 			file =  FileAccess.open(i_path,FileAccess.WRITE)
 			file.store_string(content)
-	
-	#获取当前目录下的全部文件,包含子文件
-	func get_all_files(dir_path):
-		var dirs  = DirAccess.open(dir_path)
-		var files = []
-		if !dir_path.ends_with("/"):
-			dir_path+="/"
-		for dir in dirs.get_directories():
-			for file in get_all_files(dir_path+dir):
-				files.append(file)
-		for file in dirs.get_files():
-			files.append(dir_path+file)
-		return files
-	
-	#获取全部文件夹,包含子目录文件夹
-	func get_all_dirs(dir_path):
-		var directory = []
-		var dirs  = DirAccess.open(dir_path)
-		if !dir_path.ends_with("/"):
-			dir_path+="/"
-		for dir in dirs.get_directories():
-			var path = dir_path+dir
-			for d in get_all_dirs(path):
-				directory.append(d)
-			directory.append(path)
-		return directory	
-	
-	#获取当前目录下的全部文件
-	func get_files(path):
-		return DirAccess.get_files_at(path)
-	
-	#获取当前目录下的全部文件夹
-	func get_dirs(path):
-		return DirAccess.get_directories_at(path)
-	
-	#文件夹是否存在
-	func exist_dir(path):
-		return DirAccess.dir_exists_absolute(path)
-	
-	#文件是否存在
-	func exist_file(path):
-		return FileAccess.file_exists(path)
 
 ###########################
 # 多线程管理
